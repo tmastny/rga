@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
+import { Button } from './components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from './components/ui/tooltip';
 import { ChevronDown, ChevronRight, Info, RefreshCw } from 'lucide-react';
 
 interface RGANode {
@@ -217,16 +220,23 @@ const RGAEditorDemo = () => {
 
   return (
     <div className="space-y-4">
-      <div className="border rounded-lg p-4">
-        <div className="mb-4">
-          <h2 className="text-lg font-bold flex items-center gap-2">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
             Collaborative RGA Text Editor
-            <button title="Show info">
-              <Info className="w-4 h-4" />
-            </button>
-          </h2>
-        </div>
-        <div className="p-4">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <Info className="w-4 h-4" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Real-time collaborative text editor using RGA CRDT</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
           <div className="flex gap-4 mb-4">
             {renderEditor(user1Nodes, 'user1')}
             {renderEditor(user2Nodes, 'user2')}
@@ -240,8 +250,7 @@ const RGAEditorDemo = () => {
               className="border p-2 rounded w-32"
               placeholder="Delay (ms)"
             />
-            <button
-              className="px-4 py-2 bg-blue-500 text-white rounded"
+            <Button
               onClick={() => {
                 const rootNode: RGANode = {
                   id: 'root',
@@ -258,7 +267,7 @@ const RGAEditorDemo = () => {
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Reset State
-            </button>
+            </Button>
           </div>
 
           <div className="bg-gray-50 p-4 rounded">
@@ -293,8 +302,8 @@ const RGAEditorDemo = () => {
               </div>
             )}
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
