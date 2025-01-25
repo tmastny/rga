@@ -41,27 +41,32 @@ const RGAEditorDemo = () => {
 
   const findInsertPosition = useCallback((position: number, nodes: RGANode[]) => {
     const vnodes = visibleNodes(nodes);
-    return position > 0 ? vnodes[position - 1]?.id || 'root' : 'root';
+    if (position === 0) return 'root';
+    
+    const targetNode = vnodes[position];  
+    return targetNode?.id || 'root';
   }, [visibleNodes]);
 
   const applyOperation = useCallback((nodes: RGANode[], newNode: RGANode) => {
-    const insertIndex = nodes.findIndex(n => n.id === newNode.previousId) + 1;
-    if (insertIndex === 0) return nodes;
+    // Find where to insert the new node
+    const insertAfterNode = nodes.find(n => n.id === newNode.previousId);
+    if (!insertAfterNode) return nodes;
+
+    // Find the index where we should insert
+    const insertIndex = nodes.indexOf(insertAfterNode) + 1;
 
     // Check for existing node (conflict case)
     const existingIndex = nodes.findIndex(n => n.id === newNode.id);
     if (existingIndex !== -1) {
-      // Last-write-wins conflict resolution
       if (nodes[existingIndex].timestamp >= newNode.timestamp) {
         return nodes;
       }
-      // Replace existing node
       const updatedNodes = [...nodes];
       updatedNodes[existingIndex] = newNode;
       return updatedNodes;
     }
 
-    // Insert new node
+    // Simple insert at the correct position
     return [
       ...nodes.slice(0, insertIndex),
       newNode,
@@ -118,7 +123,9 @@ const RGAEditorDemo = () => {
   ) => {
     const sourceNodes = author === 'user1' ? user1Nodes : user2Nodes;
     const vnodes = visibleNodes(sourceNodes);
-    const targetNode = vnodes[position];
+    
+    // Adjust position to account for root node
+    const targetNode = vnodes[position + 1];  // Add 1 to skip root
     if (!targetNode) return;
 
     const updatedNode = { 
@@ -176,6 +183,60 @@ const RGAEditorDemo = () => {
     const vnodes = visibleNodes(nodes);
     const editorRef = author === 'user1' ? user1EditorRef : user2EditorRef;
 
+    const handleEditorClick = (e: React.MouseEvent) => {
+      const rect = editorRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const clickX = e.clientX - rect.left;
+      const chars = editorRef.current?.getElementsByClassName('char-span');
+      if (!chars) return;
+
+      // Handle empty editor case - only count non-root nodes
+      const vnodes = visibleNodes(author === 'user1' ? user1Nodes : user2Nodes);
+      // Filter out the root node when checking if editor is empty
+      const nonRootNodes = vnodes.filter(node => node.id !== 'root');
+      if (nonRootNodes.length === 0) {
+        setCursorPos(prev => ({
+          ...prev,
+          [author]: 0
+        }));
+        return;
+      }
+
+      // If clicked past the last character
+      const lastChar = chars[chars.length - 1];
+      if (lastChar) {
+        const lastCharRect = lastChar.getBoundingClientRect();
+        if (clickX > lastCharRect.right - rect.left) {
+          setCursorPos(prev => ({
+            ...prev,
+            [author]: chars.length
+          }));
+          return;
+        }
+      }
+
+      // Otherwise find closest character as before
+      let closestIndex = 0;
+      let minDistance = Infinity;
+
+      Array.from(chars).forEach((char, index) => {
+        const charRect = char.getBoundingClientRect();
+        const charMiddle = charRect.left + charRect.width / 2 - rect.left;
+        const distance = Math.abs(clickX - charMiddle);
+        
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestIndex = index;
+        }
+      });
+
+      setCursorPos(prev => ({
+        ...prev,
+        [author]: closestIndex
+      }));
+    };
+
     return (
       <div className="flex-1">
         <h3 className="text-sm font-semibold mb-2 flex items-center">
@@ -188,31 +249,42 @@ const RGAEditorDemo = () => {
         </h3>
         <div
           ref={editorRef}
-          className="font-mono bg-gray-50 p-4 rounded min-h-32 whitespace-pre-wrap outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          className="font-mono bg-gray-50 p-4 rounded min-h-32 whitespace-pre-wrap outline-none focus-visible:ring-2 focus-visible:ring-blue-500 caret-transparent"
           contentEditable
           suppressContentEditableWarning
           onKeyDown={handleKeyDown(author)}
+          onClick={handleEditorClick}
           tabIndex={0}
         >
           {vnodes.map((node, index) => (
             <span
               key={node.id}
-              className={`relative group ${index === cursorPos[author] ? 'bg-blue-100' : ''}`}
+              className="relative group char-span"
               style={{ color: node.author === 'user1' ? '#3b82f6' : '#22c55e' }}
             >
               {node.value}
-              <span className="absolute -top-4 left-0 text-xs opacity-0 group-hover:opacity-100">
-                {node.id.slice(0, 4)}
-              </span>
+              {index === cursorPos[author] + 1 && (
+                <span 
+                  className="absolute w-0.5 h-5 animate-pulse"
+                  style={{ 
+                    backgroundColor: author === 'user1' ? '#3b82f6' : '#22c55e',
+                    left: '-1px'
+                  }}
+                ></span>
+              )}
             </span>
           ))}
-          <span 
-            className="w-0.5 h-5 inline-block animate-pulse"
-            style={{ 
-              backgroundColor: author === 'user1' ? '#3b82f6' : '#22c55e',
-              marginLeft: '0.5px'
-            }}
-          ></span>
+          <span className="relative char-span">
+            {cursorPos[author] === vnodes.length - 1 && (
+              <span 
+                className="absolute w-0.5 h-5 animate-pulse"
+                style={{ 
+                  backgroundColor: author === 'user1' ? '#3b82f6' : '#22c55e',
+                  left: '-1px'
+                }}
+              ></span>
+            )}
+          </span>
         </div>
       </div>
     );
