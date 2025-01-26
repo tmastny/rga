@@ -12,6 +12,190 @@ interface RGANode {
   author: 'user1' | 'user2';
 }
 
+type Example = {
+  title: string;
+  description: string;
+  user1Text: string;
+  user2Text: string;
+  user1Nodes: RGANode[];
+  user2Nodes: RGANode[];
+};
+
+const examples: Example[] = [
+  {
+    title: "Concurrent Insertion Ordering",
+    description: "Two users insert different characters after 'h' at nearly the same time. When synced, they should appear in timestamp order.",
+    user1Text: "h1",
+    user2Text: "h2",
+    user1Nodes: [
+      {
+        id: 'root',
+        value: '',
+        timestamp: 0,
+        previousId: null,
+        removed: false,
+        author: 'user1'
+      },
+      {
+        id: 'e2l2',
+        value: 'h',
+        timestamp: 1737859284865,
+        previousId: 'root',
+        removed: false,
+        author: 'user1'
+      },
+      {
+        id: 'vsmg',
+        value: '1',
+        timestamp: 1737859295511,
+        previousId: 'e2l2',
+        removed: false,
+        author: 'user1'
+      }
+    ],
+    user2Nodes: [
+      {
+        id: 'root',
+        value: '',
+        timestamp: 0,
+        previousId: null,
+        removed: false,
+        author: 'user1'
+      },
+      {
+        id: 'e2l2',
+        value: 'h',
+        timestamp: 1737859284865,
+        previousId: 'root',
+        removed: false,
+        author: 'user1'
+      },
+      {
+        id: 'nvb8',
+        value: '2',
+        timestamp: 1737859299411,
+        previousId: 'e2l2',
+        removed: false,
+        author: 'user2'
+      }
+    ]
+  },
+  {
+    title: "Concurrent Delete and Insert",
+    description: "User1 deletes 'hello' while User2 inserts a character in the middle. When synced, the deletion is preserved while maintaining the new insertion.",
+    user1Text: "",  // After deleting "hello"
+    user2Text: "helXlo",  // After inserting "X"
+    user1Nodes: [
+      {
+        id: 'root',
+        value: '',
+        timestamp: 0,
+        previousId: null,
+        removed: false,
+        author: 'user1'
+      },
+      {
+        id: 'h1',
+        value: 'h',
+        timestamp: 1000,
+        previousId: 'root',
+        removed: true,  // User1 deleted this
+        author: 'user1'
+      },
+      {
+        id: 'e1',
+        value: 'e',
+        timestamp: 1001,
+        previousId: 'h1',
+        removed: true,
+        author: 'user1'
+      },
+      {
+        id: 'l1',
+        value: 'l',
+        timestamp: 1002,
+        previousId: 'e1',
+        removed: true,
+        author: 'user1'
+      },
+      {
+        id: 'l2',
+        value: 'l',
+        timestamp: 1003,
+        previousId: 'l1',
+        removed: true,
+        author: 'user1'
+      },
+      {
+        id: 'o1',
+        value: 'o',
+        timestamp: 1004,
+        previousId: 'l2',
+        removed: true,
+        author: 'user1'
+      }
+    ],
+    user2Nodes: [
+      {
+        id: 'root',
+        value: '',
+        timestamp: 0,
+        previousId: null,
+        removed: false,
+        author: 'user1'
+      },
+      {
+        id: 'h1',
+        value: 'h',
+        timestamp: 1000,
+        previousId: 'root',
+        removed: false,
+        author: 'user1'
+      },
+      {
+        id: 'e1',
+        value: 'e',
+        timestamp: 1001,
+        previousId: 'h1',
+        removed: false,
+        author: 'user1'
+      },
+      {
+        id: 'l1',
+        value: 'l',
+        timestamp: 1002,
+        previousId: 'e1',
+        removed: false,
+        author: 'user1'
+      },
+      {
+        id: 'x1',
+        value: 'X',
+        timestamp: 1005,  // Inserted after the deletions
+        previousId: 'l1',
+        removed: false,
+        author: 'user2'
+      },
+      {
+        id: 'l2',
+        value: 'l',
+        timestamp: 1003,
+        previousId: 'l1',
+        removed: false,
+        author: 'user1'
+      },
+      {
+        id: 'o1',
+        value: 'o',
+        timestamp: 1004,
+        previousId: 'l2',
+        removed: false,
+        author: 'user1'
+      }
+    ]
+  }
+];
+
 const RGAEditorDemo = () => {
   const [user1Nodes, setUser1Nodes] = useState<RGANode[]>([]);
   const [user2Nodes, setUser2Nodes] = useState<RGANode[]>([]);
@@ -21,6 +205,7 @@ const RGAEditorDemo = () => {
   const user1EditorRef = useRef<HTMLDivElement>(null);
   const user2EditorRef = useRef<HTMLDivElement>(null);
   const [isOffline, setIsOffline] = useState(false);
+  const [showExamples, setShowExamples] = useState(false);
 
   // Generate initial root node
   useEffect(() => {
@@ -416,6 +601,36 @@ const RGAEditorDemo = () => {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mb-8">
+              <div className="flex items-center gap-2 mb-2 cursor-pointer" 
+                  onClick={() => setShowExamples(!showExamples)}>
+                {showExamples ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                <h3 className="font-semibold">Examples</h3>
+              </div>
+              
+              {showExamples && (
+                <div className="space-y-4">
+                  {examples.map((example, index) => (
+                    <div key={index} className="p-4 bg-white rounded border">
+                      <h4 className="font-semibold mb-2">{example.title}</h4>
+                      <p className="text-sm text-gray-600 mb-4">{example.description}</p>
+                      <button
+                        onClick={() => {
+                          setIsOffline(true);
+                          setUser1Nodes(example.user1Nodes);
+                          setUser2Nodes(example.user2Nodes);
+                          setCursorPos({ user1: example.user1Text.length + 1, user2: example.user2Text.length + 1 });
+                        }}
+                        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                      >
+                        Load Example
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
