@@ -303,7 +303,11 @@ const examples: Example[] = [
 ];
 
 const RGAEditorDemo = () => {
-  const [user1Nodes, setUser1Nodes] = useState<RGANode[]>([]);
+  const [user1Nodes, setUser1NodesOriginal] = useState<RGANode[]>([]);
+  const setUser1Nodes = (nodes: RGANode[] | ((prev: RGANode[]) => RGANode[])) => {
+    console.trace('setUser1Nodes called with:', nodes);
+    setUser1NodesOriginal(nodes);
+  };
   const [user2Nodes, setUser2Nodes] = useState<RGANode[]>([]);
   const [networkDelay, setNetworkDelay] = useState(1000);
   const [showStructure, setShowStructure] = useState(true);
@@ -585,7 +589,9 @@ const RGAEditorDemo = () => {
 
   // Watch for offline mode changes
   useEffect(() => {
-    if (!isOffline) {
+    const wasOffline = isOffline === false;  // Check if we're transitioning from offline to online
+    
+    if (wasOffline) {
       // Sync user1's nodes to user2
       user1Nodes.forEach(node => {
         updateNodes('user1', node, false);
@@ -596,7 +602,24 @@ const RGAEditorDemo = () => {
         updateNodes('user2', node, false);
       });
     }
-  }, [isOffline, user1Nodes, user2Nodes, updateNodes]);
+  }, [isOffline]); // Only depend on isOffline changes
+
+  // Define the reset handler at the component level
+  const handleReset = useCallback(() => {
+    const rootNode: RGANode = {
+      id: 'root',
+      value: '',
+      timestamp: 0,
+      previousId: null,
+      removed: false,
+      author: 'user1'
+    };
+    
+    // Update all state in one batch
+    setUser1Nodes([rootNode]);
+    setUser2Nodes([rootNode]);
+    setCursorPos({ user1: 0, user2: 0 });
+  }, [setUser1Nodes, setUser2Nodes, setCursorPos]);
 
   return (
     <div className="p-4 max-w-6xl mx-auto">
@@ -666,18 +689,8 @@ const RGAEditorDemo = () => {
                 </div>
                 <Button
                   onClick={(e) => {
-                    e.stopPropagation();  // Stop event from bubbling
-                    const rootNode: RGANode = {
-                      id: 'root',
-                      value: '',
-                      timestamp: 0,
-                      previousId: null,
-                      removed: false,
-                      author: 'user1'
-                    };
-                    setUser1Nodes([rootNode]);
-                    setUser2Nodes([rootNode]);
-                    setCursorPos({ user1: 0, user2: 0 });
+                    e.stopPropagation();
+                    handleReset();
                   }}
                   variant="outline"
                   size="sm"
