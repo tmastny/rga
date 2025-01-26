@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
 import { Button } from './components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from './components/ui/tooltip';
 import { ChevronDown, ChevronRight, Info, RefreshCw } from 'lucide-react';
 
 interface RGANode {
@@ -49,13 +48,6 @@ const RGAEditorDemo = () => {
   }, [visibleNodes]);
 
   const applyOperation = useCallback((nodes: RGANode[], newNode: RGANode) => {
-    // Find where to insert the new node
-    const insertAfterNode = nodes.find(n => n.id === newNode.previousId);
-    if (!insertAfterNode) return nodes;
-
-    // Find the index where we should insert
-    const insertIndex = nodes.indexOf(insertAfterNode) + 1;
-
     // Check for existing node (conflict case)
     const existingIndex = nodes.findIndex(n => n.id === newNode.id);
     if (existingIndex !== -1) {
@@ -67,7 +59,20 @@ const RGAEditorDemo = () => {
       return updatedNodes;
     }
 
-    // Simple insert at the correct position
+    // Find all nodes that share the same previousId
+    const insertAfterNode = nodes.find(n => n.id === newNode.previousId);
+    if (!insertAfterNode) return nodes;
+
+    // Get the base insert index
+    let insertIndex = nodes.indexOf(insertAfterNode) + 1;
+    
+    // Move insertion point forward past any siblings with earlier timestamps
+    while (insertIndex < nodes.length && 
+           nodes[insertIndex].previousId === newNode.previousId && 
+           nodes[insertIndex].timestamp < newNode.timestamp) {
+      insertIndex++;
+    }
+
     return [
       ...nodes.slice(0, insertIndex),
       newNode,
@@ -292,139 +297,143 @@ const RGAEditorDemo = () => {
   }, [isOffline, user1Nodes, user2Nodes, updateNodes]);
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Collaborative RGA Text Editor
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <Info className="w-4 h-4" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Real-time collaborative text editor using RGA CRDT</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4 mb-4">
-            {renderEditor(user1Nodes, 'user1')}
-            {renderEditor(user2Nodes, 'user2')}
-          </div>
+    <div className="p-4 max-w-6xl mx-auto">
+      <div className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold mb-8">Collaborative RGA Text Editor</h1>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-4 mb-4">
+              {renderEditor(user1Nodes, 'user1')}
+              {renderEditor(user2Nodes, 'user2')}
+            </div>
 
-          <div className="flex gap-2 mb-4">
-            <input
-              type="number"
-              value={networkDelay}
-              onChange={(e) => setNetworkDelay(Number(e.target.value))}
-              className="border p-2 rounded w-32"
-              placeholder="Delay (ms)"
-            />
-            <Button
-              onClick={() => {
-                const rootNode: RGANode = {
-                  id: 'root',
-                  value: '',
-                  timestamp: 0,
-                  previousId: null,
-                  removed: false,
-                  author: 'user1'
-                };
-                setUser1Nodes([rootNode]);
-                setUser2Nodes([rootNode]);
-                setCursorPos({ user1: 0, user2: 0 });
-              }}
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Reset State
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <label className="relative inline-flex items-center cursor-pointer">
+            <div className="flex gap-2 mb-4">
               <input
-                type="checkbox"
-                className="sr-only peer"
-                checked={isOffline}
-                onChange={(e) => setIsOffline(e.target.checked)}
+                type="number"
+                value={networkDelay}
+                onChange={(e) => setNetworkDelay(Number(e.target.value))}
+                className="border p-2 rounded w-32"
+                placeholder="Delay (ms)"
               />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              <span className="ml-3 text-sm font-medium text-gray-900">Offline Mode</span>
-            </label>
-          </div>
-
-          {isOffline && (
-            <div className="text-sm text-amber-600 bg-amber-50 p-2 rounded">
-              ⚠️ Offline Mode: Changes won't sync between users until online
+              <Button
+                onClick={() => {
+                  const rootNode: RGANode = {
+                    id: 'root',
+                    value: '',
+                    timestamp: 0,
+                    previousId: null,
+                    removed: false,
+                    author: 'user1'
+                  };
+                  setUser1Nodes([rootNode]);
+                  setUser2Nodes([rootNode]);
+                  setCursorPos({ user1: 0, user2: 0 });
+                }}
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Reset State
+              </Button>
             </div>
-          )}
 
-          <div className="bg-gray-50 p-4 rounded">
-            <div className="flex items-center gap-2 mb-2 cursor-pointer" 
-                onClick={() => setShowStructure(!showStructure)}>
-              {showStructure ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-              <h3 className="font-semibold">RGA Internal Structure</h3>
+            <div className="flex items-center gap-2">
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={isOffline}
+                  onChange={(e) => setIsOffline(e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                <span className="ml-3 text-sm font-medium text-gray-900">Offline Mode</span>
+              </label>
             </div>
-            
-            {showStructure && (
-              <div className="flex gap-4">
-                {/* User 1's Structure */}
-                <div className="flex-1 space-y-2">
-                  <h4 className="font-semibold text-sm" style={{ color: '#3b82f6' }}>User 1 Structure</h4>
-                  {user1Nodes.map((node) => (
-                    <div key={node.id} className="p-2 bg-white rounded border text-sm">
-                      <div className="flex gap-2">
-                        <span className="font-mono">{node.id.slice(0, 4)}</span>
-                        <span 
-                          className={`px-2 ${node.removed ? 'line-through text-red-500' : ''}`}
-                          style={{ color: node.author === 'user1' ? '#3b82f6' : '#22c55e' }}
-                        >
-                          {node.value || '◼ root'}
-                        </span>
-                        <span className="text-gray-500">
-                          ← {node.previousId?.slice(0, 4) || 'null'}
-                        </span>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        Author: {node.author} | Timestamp: {node.timestamp}
-                        {node.removed && <span className="ml-2 text-red-500">(removed)</span>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
 
-                {/* User 2's Structure */}
-                <div className="flex-1 space-y-2">
-                  <h4 className="font-semibold text-sm" style={{ color: '#22c55e' }}>User 2 Structure</h4>
-                  {user2Nodes.map((node) => (
-                    <div key={node.id} className="p-2 bg-white rounded border text-sm">
-                      <div className="flex gap-2">
-                        <span className="font-mono">{node.id.slice(0, 4)}</span>
-                        <span 
-                          className={`px-2 ${node.removed ? 'line-through text-red-500' : ''}`}
-                          style={{ color: node.author === 'user1' ? '#3b82f6' : '#22c55e' }}
-                        >
-                          {node.value || '◼ root'}
-                        </span>
-                        <span className="text-gray-500">
-                          ← {node.previousId?.slice(0, 4) || 'null'}
-                        </span>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        Author: {node.author} | Timestamp: {node.timestamp}
-                        {node.removed && <span className="ml-2 text-red-500">(removed)</span>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            {isOffline && (
+              <div className="text-sm text-amber-600 bg-amber-50 p-2 rounded">
+                ⚠️ Offline Mode: Changes won't sync between users until online
               </div>
             )}
-          </div>
-        </CardContent>
-      </Card>
+
+            <div className="bg-gray-50 p-4 rounded">
+              <div className="flex items-center gap-2 mb-2 cursor-pointer" 
+                  onClick={() => setShowStructure(!showStructure)}>
+                {showStructure ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                <h3 className="font-semibold">RGA Internal Structure</h3>
+              </div>
+              
+              {showStructure && (
+                <div className="flex gap-4">
+                  {/* User 1's Structure */}
+                  <div className="flex-1 space-y-2">
+                    <h4 className="font-semibold text-sm" style={{ color: '#3b82f6' }}>User 1 Structure</h4>
+                    {user1Nodes.map((node) => (
+                      <div key={node.id} className="p-2 bg-white rounded border text-sm">
+                        <div className="flex gap-2">
+                          <span className="font-mono">{node.id.slice(0, 4)}</span>
+                          <span 
+                            className={`px-2 ${node.removed ? 'line-through text-red-500' : ''}`}
+                            style={{ color: node.author === 'user1' ? '#3b82f6' : '#22c55e' }}
+                          >
+                            {node.value || '◼ root'}
+                          </span>
+                          <span className="text-gray-500">
+                            ← {node.previousId?.slice(0, 4) || 'null'}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Author: {node.author} | Timestamp: {node.timestamp}
+                          {node.removed && <span className="ml-2 text-red-500">(removed)</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* User 2's Structure */}
+                  <div className="flex-1 space-y-2">
+                    <h4 className="font-semibold text-sm" style={{ color: '#22c55e' }}>User 2 Structure</h4>
+                    {user2Nodes.map((node) => (
+                      <div key={node.id} className="p-2 bg-white rounded border text-sm">
+                        <div className="flex gap-2">
+                          <span className="font-mono">{node.id.slice(0, 4)}</span>
+                          <span 
+                            className={`px-2 ${node.removed ? 'line-through text-red-500' : ''}`}
+                            style={{ color: node.author === 'user1' ? '#3b82f6' : '#22c55e' }}
+                          >
+                            {node.value || '◼ root'}
+                          </span>
+                          <span className="text-gray-500">
+                            ← {node.previousId?.slice(0, 4) || 'null'}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Author: {node.author} | Timestamp: {node.timestamp}
+                          {node.removed && <span className="ml-2 text-red-500">(removed)</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Footer */}
+      <div className="mt-8 text-center text-sm text-gray-500">
+        Built by <a 
+          href="https://timmastny.com" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-blue-500 hover:text-blue-600 underline"
+        >
+          Tim Mastny
+        </a>
+      </div>
     </div>
   );
 };
