@@ -315,7 +315,7 @@ const RGAEditorDemo = () => {
   const user1EditorRef = useRef<HTMLDivElement>(null);
   const user2EditorRef = useRef<HTMLDivElement>(null);
   const [isOffline, setIsOffline] = useState(false);
-  const [showExamples, setShowExamples] = useState(false);
+  const [showExamples, setShowExamples] = useState(true);
 
   // Generate initial root node
   useEffect(() => {
