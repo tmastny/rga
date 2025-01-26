@@ -350,27 +350,56 @@ const RGAEditorDemo = () => {
             </div>
             
             {showStructure && (
-              <div className="space-y-2">
-                {user1Nodes.map((node) => (
-                  <div key={node.id} className="p-2 bg-white rounded border text-sm">
-                    <div className="flex gap-2">
-                      <span className="font-mono">{node.id.slice(0, 4)}</span>
-                      <span 
-                        className={`px-2 ${node.removed ? 'line-through text-red-500' : ''}`}
-                        style={{ color: node.author === 'user1' ? '#3b82f6' : '#22c55e' }}
-                      >
-                        {node.value || '◼ root'}
-                      </span>
-                      <span className="text-gray-500">
-                        ← {node.previousId?.slice(0, 4) || 'null'}
-                      </span>
+              <div className="flex gap-4">
+                {/* User 1's Structure */}
+                <div className="flex-1 space-y-2">
+                  <h4 className="font-semibold text-sm" style={{ color: '#3b82f6' }}>User 1 Structure</h4>
+                  {user1Nodes.map((node) => (
+                    <div key={node.id} className="p-2 bg-white rounded border text-sm">
+                      <div className="flex gap-2">
+                        <span className="font-mono">{node.id.slice(0, 4)}</span>
+                        <span 
+                          className={`px-2 ${node.removed ? 'line-through text-red-500' : ''}`}
+                          style={{ color: node.author === 'user1' ? '#3b82f6' : '#22c55e' }}
+                        >
+                          {node.value || '◼ root'}
+                        </span>
+                        <span className="text-gray-500">
+                          ← {node.previousId?.slice(0, 4) || 'null'}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        Author: {node.author} | Timestamp: {node.timestamp}
+                        {node.removed && <span className="ml-2 text-red-500">(removed)</span>}
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      Author: {node.author} | Timestamp: {node.timestamp}
-                      {node.removed && <span className="ml-2 text-red-500">(removed)</span>}
+                  ))}
+                </div>
+
+                {/* User 2's Structure */}
+                <div className="flex-1 space-y-2">
+                  <h4 className="font-semibold text-sm" style={{ color: '#22c55e' }}>User 2 Structure</h4>
+                  {user2Nodes.map((node) => (
+                    <div key={node.id} className="p-2 bg-white rounded border text-sm">
+                      <div className="flex gap-2">
+                        <span className="font-mono">{node.id.slice(0, 4)}</span>
+                        <span 
+                          className={`px-2 ${node.removed ? 'line-through text-red-500' : ''}`}
+                          style={{ color: node.author === 'user1' ? '#3b82f6' : '#22c55e' }}
+                        >
+                          {node.value || '◼ root'}
+                        </span>
+                        <span className="text-gray-500">
+                          ← {node.previousId?.slice(0, 4) || 'null'}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        Author: {node.author} | Timestamp: {node.timestamp}
+                        {node.removed && <span className="ml-2 text-red-500">(removed)</span>}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
           </div>
