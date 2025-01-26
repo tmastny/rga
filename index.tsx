@@ -21,6 +21,7 @@ const RGAEditorDemo = () => {
   const [cursorPos, setCursorPos] = useState<{ user1: number; user2: number }>({ user1: 0, user2: 0 });
   const user1EditorRef = useRef<HTMLDivElement>(null);
   const user2EditorRef = useRef<HTMLDivElement>(null);
+  const [isOffline, setIsOffline] = useState(false);
 
   // Generate initial root node
   useEffect(() => {
@@ -74,6 +75,23 @@ const RGAEditorDemo = () => {
     ];
   }, []);
 
+  const updateNodes = useCallback((author: 'user1' | 'user2', node: RGANode, immediateUpdate: boolean) => {
+    const setLocalNodes = author === 'user1' ? setUser1Nodes : setUser2Nodes;
+    const setRemoteNodes = author === 'user1' ? setUser2Nodes : setUser1Nodes;
+    
+    // Local update (immediate)
+    if (immediateUpdate) {
+      setLocalNodes(nodes => applyOperation(nodes, node));
+    }
+
+    // Remote update (delayed)
+    if (!isOffline) {
+      setTimeout(() => {
+        setRemoteNodes(nodes => applyOperation(nodes, node));
+      }, networkDelay);
+    }
+  }, [networkDelay, isOffline, applyOperation]);
+
   const handleInsert = useCallback((
     value: string, 
     position: number, 
@@ -92,29 +110,13 @@ const RGAEditorDemo = () => {
       author
     };
 
-    // Local update
-    if (immediateUpdate) {
-      if (author === 'user1') {
-        setUser1Nodes(nodes => applyOperation(nodes, newNode));
-      } else {
-        setUser2Nodes(nodes => applyOperation(nodes, newNode));
-      }
-    }
-
-    // Remote update with delay
-    setTimeout(() => {
-      if (author === 'user1') {
-        setUser2Nodes(nodes => applyOperation(nodes, newNode));
-      } else {
-        setUser1Nodes(nodes => applyOperation(nodes, newNode));
-      }
-    }, networkDelay);
+    updateNodes(author, newNode, immediateUpdate);
 
     setCursorPos(prev => ({
       ...prev,
       [author]: prev[author] + 1
     }));
-  }, [applyOperation, findInsertPosition, networkDelay, user1Nodes, user2Nodes]);
+  }, [findInsertPosition, networkDelay, user1Nodes, user2Nodes, isOffline, updateNodes]);
 
   const handleDelete = useCallback((
     position: number,
@@ -134,29 +136,13 @@ const RGAEditorDemo = () => {
       timestamp: Date.now() // Update timestamp for conflict resolution
     };
 
-    // Local update
-    if (immediateUpdate) {
-      if (author === 'user1') {
-        setUser1Nodes(nodes => nodes.map(n => n.id === targetNode.id ? updatedNode : n));
-      } else {
-        setUser2Nodes(nodes => nodes.map(n => n.id === targetNode.id ? updatedNode : n));
-      }
-    }
-
-    // Remote update with delay
-    setTimeout(() => {
-      if (author === 'user1') {
-        setUser2Nodes(nodes => nodes.map(n => n.id === targetNode.id ? updatedNode : n));
-      } else {
-        setUser1Nodes(nodes => nodes.map(n => n.id === targetNode.id ? updatedNode : n));
-      }
-    }, networkDelay);
+    updateNodes(author, updatedNode, immediateUpdate);
 
     setCursorPos(prev => ({
       ...prev,
       [author]: Math.max(0, prev[author] - 1)
     }));
-  }, [networkDelay, user1Nodes, user2Nodes, visibleNodes]);
+  }, [visibleNodes, networkDelay, user1Nodes, user2Nodes, isOffline, updateNodes]);
 
   const handleKeyDown = (author: 'user1' | 'user2') => (e: React.KeyboardEvent) => {
     e.preventDefault();
@@ -290,6 +276,21 @@ const RGAEditorDemo = () => {
     );
   };
 
+  // Watch for offline mode changes
+  useEffect(() => {
+    if (!isOffline) {
+      // Sync user1's nodes to user2
+      user1Nodes.forEach(node => {
+        updateNodes('user1', node, false);
+      });
+
+      // Sync user2's nodes to user1
+      user2Nodes.forEach(node => {
+        updateNodes('user2', node, false);
+      });
+    }
+  }, [isOffline, user1Nodes, user2Nodes, updateNodes]);
+
   return (
     <div className="space-y-4">
       <Card>
@@ -341,6 +342,25 @@ const RGAEditorDemo = () => {
               Reset State
             </Button>
           </div>
+
+          <div className="flex items-center gap-2">
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={isOffline}
+                onChange={(e) => setIsOffline(e.target.checked)}
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <span className="ml-3 text-sm font-medium text-gray-900">Offline Mode</span>
+            </label>
+          </div>
+
+          {isOffline && (
+            <div className="text-sm text-amber-600 bg-amber-50 p-2 rounded">
+              ⚠️ Offline Mode: Changes won't sync between users until online
+            </div>
+          )}
 
           <div className="bg-gray-50 p-4 rounded">
             <div className="flex items-center gap-2 mb-2 cursor-pointer" 
