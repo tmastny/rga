@@ -97,15 +97,15 @@ const examples: Example[] = [
       {
         id: 'h1',
         value: 'h',
-        timestamp: 1000,
+        timestamp: 1006,  // Later timestamp when deleted
         previousId: 'root',
-        removed: true,  // User1 deleted this
+        removed: true,
         author: 'user1'
       },
       {
         id: 'e1',
         value: 'e',
-        timestamp: 1001,
+        timestamp: 1007,  // Later timestamp when deleted
         previousId: 'h1',
         removed: true,
         author: 'user1'
@@ -113,7 +113,7 @@ const examples: Example[] = [
       {
         id: 'l1',
         value: 'l',
-        timestamp: 1002,
+        timestamp: 1008,  // Later timestamp when deleted
         previousId: 'e1',
         removed: true,
         author: 'user1'
@@ -121,7 +121,7 @@ const examples: Example[] = [
       {
         id: 'l2',
         value: 'l',
-        timestamp: 1003,
+        timestamp: 1009,  // Later timestamp when deleted
         previousId: 'l1',
         removed: true,
         author: 'user1'
@@ -129,7 +129,7 @@ const examples: Example[] = [
       {
         id: 'o1',
         value: 'o',
-        timestamp: 1004,
+        timestamp: 1010,  // Later timestamp when deleted
         previousId: 'l2',
         removed: true,
         author: 'user1'
@@ -332,6 +332,17 @@ const RGAEditorDemo = () => {
       ...prev,
       [author]: Math.max(0, prev[author] - 1)
     }));
+
+    // Remote update only if not offline
+    if (!isOffline) {
+      setTimeout(() => {
+        if (author === 'user1') {
+          setUser2Nodes(nodes => nodes.map(n => n.id === targetNode.id ? updatedNode : n));
+        } else {
+          setUser1Nodes(nodes => nodes.map(n => n.id === targetNode.id ? updatedNode : n));
+        }
+      }, networkDelay);
+    }
   }, [visibleNodes, networkDelay, user1Nodes, user2Nodes, isOffline, updateNodes]);
 
   const handleKeyDown = (author: 'user1' | 'user2') => (e: React.KeyboardEvent) => {
