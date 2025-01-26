@@ -481,12 +481,12 @@ const RGAEditorDemo = () => {
       if (!rect) return;
 
       const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
       const chars = editorRef.current?.getElementsByClassName('char-span');
       if (!chars) return;
 
-      // Handle empty editor case - only count non-root nodes
-      const vnodes = visibleNodes(author === 'user1' ? user1Nodes : user2Nodes);
-      // Filter out the root node when checking if editor is empty
+      // Handle empty editor case
+      const vnodes = visibleNodes(nodes); // Use passed nodes instead of accessing state
       const nonRootNodes = vnodes.filter(node => node.id !== 'root');
       if (nonRootNodes.length === 0) {
         setCursorPos(prev => ({
@@ -496,33 +496,79 @@ const RGAEditorDemo = () => {
         return;
       }
 
-      // If clicked past the last character
-      const lastChar = chars[chars.length - 1];
+      // Convert chars to array for easier processing
+      const charsArray = Array.from(chars);
+      
+      // If clicked below all text, put cursor at the end
+      const lastChar = charsArray[charsArray.length - 1];
       if (lastChar) {
         const lastCharRect = lastChar.getBoundingClientRect();
-        if (clickX > lastCharRect.right - rect.left) {
+        if (clickY > lastCharRect.bottom - rect.top) {
           setCursorPos(prev => ({
             ...prev,
-            [author]: chars.length
+            [author]: charsArray.length
           }));
           return;
         }
       }
 
-      // Otherwise find closest character as before
+      // Find characters on the same line as the click
+      const charsOnClickedLine = charsArray.filter(char => {
+        const charRect = char.getBoundingClientRect();
+        const charTop = charRect.top - rect.top;
+        const charBottom = charRect.bottom - rect.top;
+        return clickY >= charTop && clickY <= charBottom;
+      });
+
+      // If clicked to the right of all characters on this line,
+      // find the last character on this line and put cursor after it
+      if (charsOnClickedLine.length > 0) {
+        const lastCharOnLine = charsOnClickedLine[charsOnClickedLine.length - 1];
+        const lastCharRect = lastCharOnLine.getBoundingClientRect();
+        if (clickX > lastCharRect.right - rect.left) {
+          const lastCharIndex = charsArray.indexOf(lastCharOnLine);
+          setCursorPos(prev => ({
+            ...prev,
+            [author]: lastCharIndex + 1
+          }));
+          return;
+        }
+      }
+
+      // Find closest character on the clicked line
       let closestIndex = 0;
       let minDistance = Infinity;
 
-      Array.from(chars).forEach((char, index) => {
+      charsOnClickedLine.forEach(char => {
         const charRect = char.getBoundingClientRect();
         const charMiddle = charRect.left + charRect.width / 2 - rect.left;
         const distance = Math.abs(clickX - charMiddle);
         
         if (distance < minDistance) {
           minDistance = distance;
-          closestIndex = index;
+          closestIndex = charsArray.indexOf(char);
         }
       });
+
+      // If no characters found on the clicked line, 
+      // find the closest line and put cursor at its start
+      if (charsOnClickedLine.length === 0) {
+        let closestLine = Infinity;
+        let lineStartIndex = 0;
+
+        charsArray.forEach((char, index) => {
+          const charRect = char.getBoundingClientRect();
+          const charTop = charRect.top - rect.top;
+          const distance = Math.abs(clickY - charTop);
+          
+          if (distance < closestLine) {
+            closestLine = distance;
+            lineStartIndex = index;
+          }
+        });
+
+        closestIndex = lineStartIndex;
+      }
 
       setCursorPos(prev => ({
         ...prev,
