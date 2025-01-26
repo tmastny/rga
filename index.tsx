@@ -613,7 +613,8 @@ const RGAEditorDemo = () => {
               {renderEditor(user2Nodes, 'user2')}
             </div>
 
-            <div className="flex gap-2 mb-4 items-center">
+            {/* Network Controls Group */}
+            <div className="flex gap-8 mb-4">
               <div className="flex flex-col">
                 <label htmlFor="networkDelay" className="text-sm text-gray-500 mb-1">
                   Network Delay (ms)
@@ -621,145 +622,155 @@ const RGAEditorDemo = () => {
                 <input
                   id="networkDelay"
                   type="number"
-                  value={networkDelay}
-                  onChange={(e) => setNetworkDelay(Number(e.target.value))}
+                  value={networkDelay || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const numValue = value === '' ? 0 : parseInt(value, 10);
+                    setNetworkDelay(numValue);
+                  }}
                   className="border p-2 rounded w-32"
                   min="0"
                 />
               </div>
-              <Button
-                onClick={() => {
-                  const rootNode: RGANode = {
-                    id: 'root',
-                    value: '',
-                    timestamp: 0,
-                    previousId: null,
-                    removed: false,
-                    author: 'user1'
-                  };
-                  setUser1Nodes([rootNode]);
-                  setUser2Nodes([rootNode]);
-                  setCursorPos({ user1: 0, user2: 0 });
-                }}
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Reset State
-              </Button>
-            </div>
 
-            <div className="flex items-center gap-2">
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="sr-only peer"
-                  checked={!isOffline}
-                  onChange={(e) => setIsOffline(!e.target.checked)}
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                <span className="ml-3 text-sm font-medium text-gray-900">Sync Changes</span>
-              </label>
-            </div>
-
-            {isOffline && (
-              <div className="text-sm text-amber-600 bg-amber-50 p-2 rounded mt-2">
-                ⚠️ Changes won't sync between users until syncing is enabled
+              <div className="flex flex-col">
+                <label className="text-sm text-gray-500 mb-1">
+                  Sync Changes
+                </label>
+                <div className="h-[42px] flex items-center"> {/* Match input height */}
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={!isOffline}
+                      onChange={(e) => setIsOffline(!e.target.checked)}
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
               </div>
-            )}
+            </div>
 
-            <div className="mt-8">
-              {/* RGA Internal Structure Section */}
-              <div className="bg-gray-50 p-4 rounded mb-4">
-                <div className="flex items-center gap-2 mb-2 cursor-pointer" 
-                    onClick={() => setShowStructure(!showStructure)}>
+            {/* RGA Internal Structure Section */}
+            <div className="bg-gray-50 p-4 rounded mb-4">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div 
+                  className="flex items-center gap-2 cursor-pointer" 
+                  onClick={(e) => {
+                    e.stopPropagation();  // Stop event from bubbling
+                    setShowStructure(!showStructure);
+                  }}
+                >
                   {showStructure ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                   <h3 className="font-semibold">RGA Internal Structure</h3>
                 </div>
-                
-                {showStructure && (
-                  <div className="flex gap-4">
-                    {/* User 1's Structure */}
-                    <div className="flex-1 space-y-2">
-                      <h4 className="font-semibold text-sm" style={{ color: '#3b82f6' }}>User 1 Structure</h4>
-                      {user1Nodes.map((node) => (
-                        <div key={node.id} className="p-2 bg-white rounded border text-sm">
-                          <div className="flex gap-2">
-                            <span className="font-mono">{node.id.slice(0, 4)}</span>
-                            <span 
-                              className={`px-2 ${node.removed ? 'line-through text-red-500' : ''}`}
-                              style={{ color: node.author === 'user1' ? '#3b82f6' : '#22c55e' }}
-                            >
-                              {node.value || '◼ root'}
-                            </span>
-                            <span className="text-gray-500">
-                              ← {node.previousId?.slice(0, 4) || 'null'}
-                            </span>
-                          </div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            Author: {node.author} | Timestamp: {node.timestamp}
-                            {node.removed && <span className="ml-2 text-red-500">(removed)</span>}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* User 2's Structure */}
-                    <div className="flex-1 space-y-2">
-                      <h4 className="font-semibold text-sm" style={{ color: '#22c55e' }}>User 2 Structure</h4>
-                      {user2Nodes.map((node) => (
-                        <div key={node.id} className="p-2 bg-white rounded border text-sm">
-                          <div className="flex gap-2">
-                            <span className="font-mono">{node.id.slice(0, 4)}</span>
-                            <span 
-                              className={`px-2 ${node.removed ? 'line-through text-red-500' : ''}`}
-                              style={{ color: node.author === 'user1' ? '#3b82f6' : '#22c55e' }}
-                            >
-                              {node.value || '◼ root'}
-                            </span>
-                            <span className="text-gray-500">
-                              ← {node.previousId?.slice(0, 4) || 'null'}
-                            </span>
-                          </div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            Author: {node.author} | Timestamp: {node.timestamp}
-                            {node.removed && <span className="ml-2 text-red-500">(removed)</span>}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();  // Stop event from bubbling
+                    const rootNode: RGANode = {
+                      id: 'root',
+                      value: '',
+                      timestamp: 0,
+                      previousId: null,
+                      removed: false,
+                      author: 'user1'
+                    };
+                    setUser1Nodes([rootNode]);
+                    setUser2Nodes([rootNode]);
+                    setCursorPos({ user1: 0, user2: 0 });
+                  }}
+                  variant="outline"
+                  size="sm"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Reset State
+                </Button>
               </div>
-
-              {/* Examples Section */}
-              <div className="bg-gray-50 p-4 rounded">
-                <div className="flex items-center gap-2 mb-2 cursor-pointer" 
-                    onClick={() => setShowExamples(!showExamples)}>
-                  {showExamples ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                  <h3 className="font-semibold">Examples</h3>
-                </div>
-                
-                {showExamples && (
-                  <div className="space-y-4">
-                    {examples.map((example, index) => (
-                      <div key={index} className="p-4 bg-white rounded border">
-                        <h4 className="font-semibold mb-2">{example.title}</h4>
-                        <p className="text-sm text-gray-600 mb-4">{example.description}</p>
-                        <button
-                          onClick={() => {
-                            setIsOffline(true);
-                            setUser1Nodes(example.user1Nodes);
-                            setUser2Nodes(example.user2Nodes);
-                            setCursorPos({ user1: example.user1Text.length + 1, user2: example.user2Text.length + 1 });
-                          }}
-                          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                        >
-                          Load Example
-                        </button>
+              
+              {showStructure && (
+                <div className="flex gap-4">
+                  {/* User 1's Structure */}
+                  <div className="flex-1 space-y-2">
+                    <h4 className="font-semibold text-sm" style={{ color: '#3b82f6' }}>User 1 Structure</h4>
+                    {user1Nodes.map((node) => (
+                      <div key={node.id} className="p-2 bg-white rounded border text-sm">
+                        <div className="flex gap-2">
+                          <span className="font-mono">{node.id.slice(0, 4)}</span>
+                          <span 
+                            className={`px-2 ${node.removed ? 'line-through text-red-500' : ''}`}
+                            style={{ color: node.author === 'user1' ? '#3b82f6' : '#22c55e' }}
+                          >
+                            {node.value || '◼ root'}
+                          </span>
+                          <span className="text-gray-500">
+                            ← {node.previousId?.slice(0, 4) || 'null'}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Author: {node.author} | Timestamp: {node.timestamp}
+                          {node.removed && <span className="ml-2 text-red-500">(removed)</span>}
+                        </div>
                       </div>
                     ))}
                   </div>
-                )}
+
+                  {/* User 2's Structure */}
+                  <div className="flex-1 space-y-2">
+                    <h4 className="font-semibold text-sm" style={{ color: '#22c55e' }}>User 2 Structure</h4>
+                    {user2Nodes.map((node) => (
+                      <div key={node.id} className="p-2 bg-white rounded border text-sm">
+                        <div className="flex gap-2">
+                          <span className="font-mono">{node.id.slice(0, 4)}</span>
+                          <span 
+                            className={`px-2 ${node.removed ? 'line-through text-red-500' : ''}`}
+                            style={{ color: node.author === 'user1' ? '#3b82f6' : '#22c55e' }}
+                          >
+                            {node.value || '◼ root'}
+                          </span>
+                          <span className="text-gray-500">
+                            ← {node.previousId?.slice(0, 4) || 'null'}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Author: {node.author} | Timestamp: {node.timestamp}
+                          {node.removed && <span className="ml-2 text-red-500">(removed)</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Examples Section */}
+            <div className="bg-gray-50 p-4 rounded">
+              <div className="flex items-center gap-2 mb-2 cursor-pointer" 
+                  onClick={() => setShowExamples(!showExamples)}>
+                {showExamples ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                <h3 className="font-semibold">Examples</h3>
               </div>
+              
+              {showExamples && (
+                <div className="space-y-4">
+                  {examples.map((example, index) => (
+                    <div key={index} className="p-4 bg-white rounded border">
+                      <h4 className="font-semibold mb-2">{example.title}</h4>
+                      <p className="text-sm text-gray-600 mb-4">{example.description}</p>
+                      <button
+                        onClick={() => {
+                          setIsOffline(true);
+                          setUser1Nodes(example.user1Nodes);
+                          setUser2Nodes(example.user2Nodes);
+                          setCursorPos({ user1: example.user1Text.length + 1, user2: example.user2Text.length + 1 });
+                        }}
+                        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                      >
+                        Load Example
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
           </CardContent>
