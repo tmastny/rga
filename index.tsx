@@ -303,11 +303,7 @@ const examples: Example[] = [
 ];
 
 const RGAEditorDemo = () => {
-  const [user1Nodes, setUser1NodesOriginal] = useState<RGANode[]>([]);
-  const setUser1Nodes = (nodes: RGANode[] | ((prev: RGANode[]) => RGANode[])) => {
-    console.trace('setUser1Nodes called with:', nodes);
-    setUser1NodesOriginal(nodes);
-  };
+  const [user1Nodes, setUser1Nodes] = useState<RGANode[]>([]);
   const [user2Nodes, setUser2Nodes] = useState<RGANode[]>([]);
   const [networkDelay, setNetworkDelay] = useState(1000);
   const [showStructure, setShowStructure] = useState(true);
