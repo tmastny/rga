@@ -193,6 +193,112 @@ const examples: Example[] = [
         author: 'user1'
       }
     ]
+  },
+  {
+    title: "Delete Range with Mixed States",
+    description: "User1 deletes 'b' and 'd', then User2 deletes 'abc'. The final state correctly handles overlapping deletions.",
+    user1Text: "ace",  // Shows 'ace' after deleting 'b' and 'd'
+    user2Text: "de",   // Shows 'de' after deleting 'abc'
+    user1Nodes: [
+      {
+        id: 'root',
+        value: '',
+        timestamp: 0,
+        previousId: null,
+        removed: false,
+        author: 'user1'
+      },
+      {
+        id: 'a1',
+        value: 'a',
+        timestamp: 1000,
+        previousId: 'root',
+        removed: false,
+        author: 'user1'
+      },
+      {
+        id: 'b1',
+        value: 'b',
+        timestamp: 1006,  // Later timestamp for deletion
+        previousId: 'a1',
+        removed: true,
+        author: 'user1'
+      },
+      {
+        id: 'c1',
+        value: 'c',
+        timestamp: 1002,
+        previousId: 'b1',
+        removed: false,
+        author: 'user1'
+      },
+      {
+        id: 'd1',
+        value: 'd',
+        timestamp: 1007,  // Later timestamp for deletion
+        previousId: 'c1',
+        removed: true,
+        author: 'user1'
+      },
+      {
+        id: 'e1',
+        value: 'e',
+        timestamp: 1004,
+        previousId: 'd1',
+        removed: false,
+        author: 'user1'
+      }
+    ],
+    user2Nodes: [
+      {
+        id: 'root',
+        value: '',
+        timestamp: 0,
+        previousId: null,
+        removed: false,
+        author: 'user1'
+      },
+      {
+        id: 'a1',
+        value: 'a',
+        timestamp: 1008,  // Later timestamp for deletion
+        previousId: 'root',
+        removed: true,
+        author: 'user2'
+      },
+      {
+        id: 'b1',
+        value: 'b',
+        timestamp: 1001,
+        previousId: 'a1',
+        removed: false,
+        author: 'user1'
+      },
+      {
+        id: 'c1',
+        value: 'c',
+        timestamp: 1009,  // Later timestamp for deletion
+        previousId: 'b1',
+        removed: true,
+        author: 'user2'
+      },
+      {
+        id: 'd1',
+        value: 'd',
+        timestamp: 1003,
+        previousId: 'c1',
+        removed: false,
+        author: 'user1'
+      },
+      {
+        id: 'e1',
+        value: 'e',
+        timestamp: 1004,
+        previousId: 'd1',
+        removed: false,
+        author: 'user1'
+      }
+    ]
   }
 ];
 
