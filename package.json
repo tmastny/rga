@@ -3,7 +3,8 @@
   "module": "index.tsx",
   "type": "module",
   "scripts": {
-    "dev": "vite"
+    "dev": "vite",
+    "build": "vite build"
   },
   "devDependencies": {
     "@shadcn/ui": "^0.0.4",
