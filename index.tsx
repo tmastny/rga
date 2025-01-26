@@ -808,6 +808,15 @@ const RGAEditorDemo = () => {
         >
           Tim Mastny
         </a>
+        {" • "}
+        <a 
+          href="https://github.com/tmastny/rga" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-blue-500 hover:text-blue-600 underline flex items-center gap-1 inline-flex"
+        >
+          Source code
+        </a>
       </div>
     </div>
   );
